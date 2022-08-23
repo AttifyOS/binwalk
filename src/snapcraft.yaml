@@ -1,0 +1,184 @@
+name: binwalk
+base: core22
+version: '2.3.3'
+summary: Firmware Analysis Tool
+description: |
+  Binwalk is a fast, easy to use tool for analyzing, reverse engineering,
+  and extracting firmware images.
+
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict
+
+apps:
+  # sasquatch:
+  #   command: bin/sasquatch
+
+  # yaffshiv:
+  #   command: bin/yaffshiv
+
+  # jefferson:
+  #   command: bin/jefferson
+
+  # unstuff:
+  #   command: bin/unstuff
+
+  # mkcramfs:
+  #   command: bin/mkcramfs
+
+  # cramfsck:
+  #   command: bin/cramfsck
+
+  # ubireader-extract-files :
+  #   command: bin/ubireader_extract_files
+
+  binwalk:
+    command: bin/binwalk
+    plugs: [home]
+
+
+parts:
+  sasquatch:
+    plugin: make
+    source: https://github.com/threadexio/sasquatch
+    source-type: git
+    build-packages: [wget, build-essential, liblzma-dev, liblzo2-dev, zlib1g-dev]
+
+    override-build: |
+      cd $SNAPCRAFT_PART_BUILD/
+      wget https://downloads.sourceforge.net/project/squashfs/squashfs/squashfs4.3/squashfs4.3.tar.gz
+      tar -zxvf squashfs4.3.tar.gz
+      cd squashfs4.3
+      patch -p0 < ../patches/patch0.txt
+      cd squashfs-tools
+      make
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      mv sasquatch $SNAPCRAFT_PART_INSTALL/bin/
+  
+
+  yaffshiv:
+    plugin: python
+    source: https://github.com/devttys0/yaffshiv
+    source-type: git
+    override-build: |
+      snapcraftctl build
+      cd $SNAPCRAFT_PART_INSTALL
+      find . -type d -name  "__pycache__" -exec rm -r {} +
+      rm bin/activate
+      rm bin/activate.csh
+      rm bin/activate.fish
+      rm -rf lib/python3.10/site-packages/pip*
+      rm -rf lib/python3.10/site-packages/wheel*
+      rm -rf lib/python3.10/site-packages/setuptools
+      rm -rf lib/python3.10/site-packages/_distutils_hack
+      rm -rf lib/python3.10/site-packages/distutils-precedence.pth
+      rm -rf lib/python3.10/site-packages/pkg_resources
+      
+
+  jefferson:
+    plugin: python
+    source: https://github.com/sviehb/jefferson
+    source-type: git
+    build-packages: [liblzo2-dev]
+    python-requirements:
+      - requirements.txt
+    override-build: |
+      snapcraftctl build
+      cd $SNAPCRAFT_PART_INSTALL
+      find . -type d -name  "__pycache__" -exec rm -r {} +
+      rm bin/activate
+      rm bin/activate.csh
+      rm bin/activate.fish
+      rm -rf lib/python3.10/site-packages/pip*
+      rm -rf lib/python3.10/site-packages/wheel*
+      rm -rf lib/python3.10/site-packages/setuptools
+      rm -rf lib/python3.10/site-packages/_distutils_hack
+      rm -rf lib/python3.10/site-packages/distutils-precedence.pth
+      rm -rf lib/python3.10/site-packages/pkg_resources
+
+
+  unstuff:
+    plugin: nil
+    build-packages: [wget]
+    override-build: |
+      cd $SNAPCRAFT_PART_BUILD/
+      wget -O - http://downloads.tuxfamily.org/sdtraces/stuffit520.611linux-i386.tar.gz | tar -zxv
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      mv bin/unstuff $SNAPCRAFT_PART_INSTALL/bin/
+
+  # Only for distro-version==18
+  # cramfstools:
+  #   plugin: nil
+  #   build-packages: [build-essential]
+  #   override-build: |
+  #     cd $SNAPCRAFT_PART_BUILD/
+  #     git clone --quiet --depth 1 --branch "master" https://github.com/npitre/cramfs-tools
+  #     cd cramfs-tools
+  #     TIME=`date +%s` make
+  #     mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+  #     mv mkcramfs $SNAPCRAFT_PART_INSTALL/bin/
+  #     mv cramfsck $SNAPCRAFT_PART_INSTALL/bin/
+
+  ubireader:
+    plugin: python
+    source: https://github.com/jrspruitt/ubi_reader
+    source-type: git
+    build-packages: [liblzo2-dev]
+    python-packages: [python-lzo]
+    override-build: |
+      snapcraftctl build
+      cd $SNAPCRAFT_PART_INSTALL
+      find . -type d -name  "__pycache__" -exec rm -r {} +
+      rm bin/activate
+      rm bin/activate.csh
+      rm bin/activate.fish
+      rm -rf lib/python3.10/site-packages/pip*
+      rm -rf lib/python3.10/site-packages/wheel*
+      rm -rf lib/python3.10/site-packages/setuptools
+      rm -rf lib/python3.10/site-packages/_distutils_hack
+      rm -rf lib/python3.10/site-packages/distutils-precedence.pth
+      rm -rf lib/python3.10/site-packages/pkg_resources
+
+  binwalk:
+    plugin: python
+    source: https://github.com/ReFirmLabs/binwalk
+    source-type: git
+    source-commit: fa0c0bd59b8588814756942fe4cb5452e76c1dcd
+    python-packages: [matplotlib, capstone, pycryptodome, gnupg, tk]
+    override-pull: |
+      snapcraftctl pull
+      sed -i 's/child_pid is 0/child_pid == 0/; /os.chown/ d' src/binwalk/modules/extractor.py
+
+    override-build: |
+      snapcraftctl build
+      cd $SNAPCRAFT_PART_INSTALL
+      find . -type d -name  "__pycache__" -exec rm -r {} +
+      rm bin/activate
+      rm bin/activate.csh
+      rm bin/activate.fish
+      rm -rf lib/python3.10/site-packages/pip*
+      rm -rf lib/python3.10/site-packages/wheel*
+      rm -rf lib/python3.10/site-packages/setuptools
+      rm -rf lib/python3.10/site-packages/_distutils_hack
+      rm -rf lib/python3.10/site-packages/distutils-precedence.pth
+      rm -rf lib/python3.10/site-packages/pkg_resources
+
+    stage-packages:
+      - mtd-utils
+      - gzip
+      - bzip2
+      - tar
+      - arj
+      - lhasa
+      - p7zip
+      - p7zip-full
+      - cabextract
+      - cramfsswap
+      - squashfs-tools
+      #- zlib1g-dev
+      #- liblzma-dev
+      #- liblzo2-dev
+      - sleuthkit
+      - default-jdk
+      - lzop
+      - srecord
+      - cpio
